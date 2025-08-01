@@ -8,6 +8,7 @@ RSpec.describe Verse::JsonApi::ExpositionDsl, type: :exposition do
     Verse.on_boot {
       require_relative "data/test_exposition"
       TestExposition.register
+      UuidTestExposition.register
     }
 
     Verse.start(
@@ -358,6 +359,127 @@ RSpec.describe Verse::JsonApi::ExpositionDsl, type: :exposition do
       expect(
         TestExposition.exposed_endpoints[:show][:meta].meta
       ).to eq(nodoc: true)
+    end
+  end
+
+  context "allow_id functionality" do
+    context "when allow_id is false (default)" do
+      it "does not pass id to service when id is provided in request", as: :user do
+        expect_any_instance_of(TestService).to receive(:create){ |_obj, attr|
+          expect(attr.id).to be_nil # ID should not be passed to service
+          expect(attr.name).to eq("John")
+        }.and_return(UserRecord.new({ id: 1, name: "John", age: 20 }))
+
+        post "/users", {
+          data: {
+            type: "users",
+            id: "999",
+            attributes: { name: "John" }
+          }
+        }
+
+        expect(last_response.status).to eq(201)
+        expect(JSON.parse(last_response.body, symbolize_names: true)).to eq(
+          {
+            data: {
+              id: "1",
+              type: "users",
+              attributes: { name: "John", age: 20 }
+            }
+          }
+        )
+      end
+    end
+
+    context "when allow_id is true" do
+      it "allows creation with client-provided id", as: :user do
+        uuid = "550e8400-e29b-41d4-a716-446655440000"
+
+        expect_any_instance_of(UuidTestService).to receive(:create){ |_obj, attr|
+          expect(attr.id).to eq(uuid)
+          expect(attr.name).to eq("Test Record")
+          expect(attr.description).to eq("A test record with UUID")
+        }.and_return(UuidRecord.new({ id: uuid, name: "Test Record", description: "A test record with UUID" }))
+
+        post "/uuid_records", {
+          data: {
+            type: "uuids",
+            id: uuid,
+            attributes: {
+              name: "Test Record",
+              description: "A test record with UUID"
+            }
+          }
+        }
+
+        expect(last_response.status).to eq(201)
+        expect(JSON.parse(last_response.body, symbolize_names: true)).to eq(
+          {
+            data: {
+              id: uuid,
+              type: "uuids",
+              attributes: {
+                name: "Test Record",
+                description: "A test record with UUID"
+              }
+            }
+          }
+        )
+
+        expect(UuidTestExposition.trigger).to eq(true)
+      end
+
+      it "allows creation without client-provided id", as: :user do
+        expect_any_instance_of(UuidTestService).to receive(:create){ |_obj, attr|
+          expect(attr.id).to be_nil
+          expect(attr.name).to eq("Test Record")
+          expect(attr.description).to eq("A test record without UUID")
+        }.and_return(UuidRecord.new({ id: "auto-generated-uuid", name: "Test Record", description: "A test record without UUID" }))
+
+        post "/uuid_records", {
+          data: {
+            type: "uuids",
+            attributes: {
+              name: "Test Record",
+              description: "A test record without UUID"
+            }
+          }
+        }
+
+        expect(last_response.status).to eq(201)
+        expect(JSON.parse(last_response.body, symbolize_names: true)).to eq(
+          {
+            data: {
+              id: "auto-generated-uuid",
+              type: "uuids",
+              attributes: {
+                name: "Test Record",
+                description: "A test record without UUID"
+              }
+            }
+          }
+        )
+      end
+
+      it "validates id field type when provided", as: :user do
+        silent do
+          post "/uuid_records", {
+            data: {
+              type: "uuid_records",
+              id: 123, # Invalid type - should be String
+              attributes: {
+                name: "Test Record",
+                description: "A test record with invalid ID type"
+              }
+            }
+          }
+
+          expect(last_response.status).to eq(422)
+          expect(JSON.parse(last_response.body, symbolize_names: true)[:errors].first[:title]).to eq(
+            "Verse::Error::ValidationFailed"
+          )
+        end
+      end
     end
   end
 end

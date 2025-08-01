@@ -12,6 +12,16 @@ class TestService < Verse::Service::Base
   def show(id, included: []); end
 end
 
+class UuidTestService < Verse::Service::Base
+  def create(params); end
+
+  def delete(id); end
+
+  def index(filters, included: [], page: 1, items_per_page: 10, sort: nil, query_count: false); end
+
+  def show(id, included: []); end
+end
+
 class TestExposition < Verse::Exposition::Base
   class << self
     attr_accessor :trigger
@@ -41,5 +51,30 @@ class TestExposition < Verse::Exposition::Base
     index do
       allowed_filters :name__match
     end
+  end
+end
+
+class UuidTestExposition < Verse::Exposition::Base
+  class << self
+    attr_accessor :trigger
+  end
+
+  http_path "/uuid_records"
+
+  use_service UuidTestService
+
+  json_api UuidRecord do
+    create do
+      allow_id true
+
+      body do |_service, default|
+        UuidTestExposition.trigger = true
+        default.call
+      end
+    end
+    show
+    index
+    update
+    delete
   end
 end

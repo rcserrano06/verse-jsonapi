@@ -28,6 +28,8 @@ module Verse
 
         instruction :schema
 
+        instruction :allow_id, false
+
         def install
           dsl = self
 
@@ -69,6 +71,12 @@ module Verse
 
               next unless (field_name & dsl.ignored_fields).empty?
               next unless config[:visible]
+
+              # Skip primary key field - it should be at root level when allow_id is true,
+              # and not allowed at all when allow_id is false
+              if config[:primary]
+                next
+              end
 
               type = config.fetch(:type, Object)
 
@@ -113,6 +121,16 @@ module Verse
             field(:data, Hash) do
               field(:type, String).in?(dsl.parent.resource_class.type)
               field(:attributes, schema)
+
+              # Allow id field at root level when allow_id is enabled
+              if dsl.allow_id
+                resource = dsl.parent.resource_class
+                # Find the primary key field to determine its type
+                primary_field = resource.primary_key
+
+                field_type = resource.fields[primary_field][:type] || String
+                field?(:id, field_type)
+              end
 
               if relations.fields.any?
                 field?(:relationships, relations)

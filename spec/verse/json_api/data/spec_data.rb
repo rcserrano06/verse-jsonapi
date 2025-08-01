@@ -52,3 +52,12 @@ class CategoryRecord < Verse::Model::Record::Base
 end
 
 CategoryRepository = Class.new(Verse::Model::InMemory::Repository)
+
+# UUID test record for allow_id functionality
+class UuidRecord < Verse::Model::Record::Base
+  field :id, primary: true, type: String
+  field :name, type: String
+  field :description, type: String
+end
+
+UuidRepository = Class.new(Verse::Model::InMemory::Repository)
