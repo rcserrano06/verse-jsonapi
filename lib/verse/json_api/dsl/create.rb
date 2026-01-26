@@ -47,7 +47,8 @@ module Verse
               **dsl.parent.http_opts
             ) do
               desc "Create a new `#{dsl.parent.resource_class.type}`"
-              input dsl.create_schema
+              input dsl.create_input_schema
+              output dsl.create_output_schema
               meta(dsl.meta) if dsl.meta
             end
             define_method(:create) do
@@ -62,7 +63,7 @@ module Verse
           end
         end
 
-        def create_schema
+        def create_input_schema
           dsl = self
 
           schema = @schema || Verse::Schema.define do
@@ -139,6 +140,10 @@ module Verse
 
             transform{ |hash| Deserializer.deserialize(hash) }
           end
+        end
+
+        def create_output_schema
+          Util.jsonapi_record(parent.resource_class)
         end
       end
     end

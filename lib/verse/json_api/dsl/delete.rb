@@ -47,7 +47,7 @@ module Verse
               **dsl.parent.http_opts
             ) do
               desc "Delete the `#{dsl.parent.resource_class.type}`"
-              input dsl.create_schema
+              input dsl.delete_input_schema
               meta(dsl.meta) if dsl.meta
             end
             define_method(:delete) {
@@ -62,7 +62,7 @@ module Verse
           end
         end
 
-        def create_schema
+        def delete_input_schema
           key_name = path[/:(\w+)/, 1]&.to_sym
 
           raise "incorrect path for delete: `#{path}`" unless key_name

@@ -45,7 +45,8 @@ module Verse
               **dsl.parent.http_opts
             ) do
               desc "Update a `#{dsl.parent.resource_class.type}`"
-              input dsl.update_schema
+              input dsl.update_input_schema
+              output dsl.update_output_schema
               meta(dsl.meta) if dsl.meta
             end
             define_method(:update) do
@@ -60,7 +61,7 @@ module Verse
           end
         end
 
-        def update_schema
+        def update_input_schema
           dsl = self
 
           schema = @schema || Verse::Schema.define do
@@ -134,6 +135,10 @@ module Verse
               Deserializer.deserialize(hash)
             end
           end
+        end
+
+        def update_output_schema
+          Util.jsonapi_record(parent.resource_class)
         end
       end
     end

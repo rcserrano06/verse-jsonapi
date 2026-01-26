@@ -40,8 +40,8 @@ module Verse
               **dsl.parent.http_opts
             ) do
               desc "Show a specific `#{dsl.parent.resource_class.type}`"
-              input dsl.show_schema
-              output Util.jsonapi_record(dsl.parent.resource_class)
+              input dsl.show_input_schema
+              output dsl.show_output_schema
               meta(dsl.meta) if dsl.meta
             end
             define_method(:show) {
@@ -57,7 +57,7 @@ module Verse
           end
         end
 
-        def show_schema
+        def show_input_schema
           dsl = self
 
           Verse::Schema.define(parent.base_schema) do
@@ -79,6 +79,10 @@ module Verse
               end
             end
           end
+        end
+
+        def show_output_schema
+          Util.jsonapi_record(parent.resource_class)
         end
       end
     end

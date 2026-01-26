@@ -51,8 +51,8 @@ module Verse
               **dsl.parent.http_opts
             ) do
               desc "Return a paginated list of `#{dsl.parent.resource_class.type}`"
-              input dsl.create_schema
-              output Util.jsonapi_collection(dsl.parent.resource_class)
+              input dsl.index_input_schema
+              output dsl.index_output_schema
 
               meta(dsl.meta) if dsl.meta
             end
@@ -69,7 +69,7 @@ module Verse
           end
         end
 
-        def create_schema
+        def index_input_schema
           dsl = self
 
           Verse::Schema.define(parent.base_schema) do
@@ -112,7 +112,7 @@ module Verse
               field?(:included, Array, of: String).rule("must be one of `#{dsl.parent.allowed_included.join(",")}`") do |arr|
                 arr.all?{ |it| dsl.parent.allowed_included.include?(it) }
               end.meta(
-                desc: <<-MD
+                desc: <<~MD
                   The related resources to include in the response. Allowed resources are:
                   #{dsl.parent.allowed_included.map{ |inc| "- `#{inc}`" }.join("\n")}
                 MD
@@ -124,12 +124,16 @@ module Verse
                 arr.map(&:to_sym)
               end
             end.meta(
-              desc: <<-MD
+              desc: <<~MD
                 The fields to include in the response.
                 The key is the resource type and the value is an array of fields.
               MD
             )
           end
+        end
+
+        def index_output_schema
+          Util.jsonapi_collection(parent.resource_class)
         end
       end
     end
